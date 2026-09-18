@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ProvaPub.Models;
 using ProvaPub.Repository;
 
@@ -6,23 +6,43 @@ namespace ProvaPub.Services
 {
 	public class RandomService
 	{
-		int seed;
-        TestDbContext _ctx;
-		public RandomService()
-        {
-            var contextOptions = new DbContextOptionsBuilder<TestDbContext>()
-    .UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=Teste;Trusted_Connection=True;")
-    .Options;
-            seed = Guid.NewGuid().GetHashCode();
+		private const int MaxAttempts = 5;
 
-            _ctx = new TestDbContext(contextOptions);
-        }
-        public async Task<int> GetRandom()
+		private readonly TestDbContext _ctx;
+
+		public RandomService(TestDbContext ctx)
 		{
-            var number =  new Random(seed).Next(100);
-            _ctx.Numbers.Add(new RandomNumber() { Number = number });
-            _ctx.SaveChanges();
-			return number;
+			_ctx = ctx;
+		}
+
+		public async Task<int> GetRandom()
+		{
+			for (var attempt = 0; attempt < MaxAttempts; attempt++)
+			{
+				var number = await TryInsertUniqueNumberAsync();
+				if (number.HasValue)
+					return number.Value;
+			}
+
+			throw new InvalidOperationException($"Não foi possível gerar um número aleatório único após {MaxAttempts} tentativas.");
+		}
+
+		private async Task<int?> TryInsertUniqueNumberAsync()
+		{
+			var number = Random.Shared.Next();
+			var entity = new RandomNumber { Number = number };
+			_ctx.Numbers.Add(entity);
+
+			try
+			{
+				await _ctx.SaveChangesAsync();
+				return number;
+			}
+			catch (DbUpdateException)
+			{
+				_ctx.Entry(entity).State = EntityState.Detached;
+				return null;
+			}
 		}
 
 	}
