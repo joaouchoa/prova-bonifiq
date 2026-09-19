@@ -1,3 +1,4 @@
+using FluentAssertions;
 using ProvaPub.Application.Common;
 using ProvaPub.Application.DTO.Request;
 using ProvaPub.Application.Validators;
@@ -12,9 +13,14 @@ namespace ProvaPub.Tests
         [Fact]
         public void Validate_ValidRequest_HasNoErrors()
         {
-            var result = _sut.Validate(new OrderRequest("pix", 150m, 7));
+            // Arrange
+            var request = new OrderRequest("pix", 150m, 7);
 
-            Assert.True(result.IsValid);
+            // Act
+            var result = _sut.Validate(request);
+
+            // Assert
+            result.IsValid.Should().BeTrue();
         }
 
         [Theory]
@@ -22,10 +28,15 @@ namespace ProvaPub.Tests
         [InlineData(-1)]
         public void Validate_CustomerIdNotGreaterThanZero_FailsWithExpectedMessage(int customerId)
         {
-            var result = _sut.Validate(new OrderRequest("pix", 150m, customerId));
+            // Arrange
+            var request = new OrderRequest("pix", 150m, customerId);
 
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.ErrorMessage == ValidationMessages.CustomerIdMustBeGreaterThanZero);
+            // Act
+            var result = _sut.Validate(request);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().Contain(e => e.ErrorMessage == ValidationMessages.CustomerIdMustBeGreaterThanZero);
         }
 
         [Theory]
@@ -33,10 +44,15 @@ namespace ProvaPub.Tests
         [InlineData(-1)]
         public void Validate_PaymentValueNotGreaterThanZero_FailsWithExpectedMessage(decimal paymentValue)
         {
-            var result = _sut.Validate(new OrderRequest("pix", paymentValue, 7));
+            // Arrange
+            var request = new OrderRequest("pix", paymentValue, 7);
 
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.ErrorMessage == ValidationMessages.ValueMustBeGreaterThanZero);
+            // Act
+            var result = _sut.Validate(request);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().Contain(e => e.ErrorMessage == ValidationMessages.ValueMustBeGreaterThanZero);
         }
 
         [Theory]
@@ -44,28 +60,43 @@ namespace ProvaPub.Tests
         [InlineData("pi")]
         public void Validate_PaymentMethodTooShort_FailsWithExpectedMessage(string paymentMethod)
         {
-            var result = _sut.Validate(new OrderRequest(paymentMethod, 150m, 7));
+            // Arrange
+            var request = new OrderRequest(paymentMethod, 150m, 7);
 
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.ErrorMessage == ValidationMessages.PaymentMethodTooShort);
+            // Act
+            var result = _sut.Validate(request);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().Contain(e => e.ErrorMessage == ValidationMessages.PaymentMethodTooShort);
         }
 
         [Fact]
         public void Validate_PaymentMethodEmpty_FailsWithRequiredMessage()
         {
-            var result = _sut.Validate(new OrderRequest("", 150m, 7));
+            // Arrange
+            var request = new OrderRequest("", 150m, 7);
 
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.ErrorMessage == ValidationMessages.PaymentMethodRequired);
+            // Act
+            var result = _sut.Validate(request);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().Contain(e => e.ErrorMessage == ValidationMessages.PaymentMethodRequired);
         }
 
         [Fact]
         public void Validate_PaymentMethodNull_FailsWithRequiredMessage()
         {
-            var result = _sut.Validate(new OrderRequest(null!, 150m, 7));
+            // Arrange
+            var request = new OrderRequest(null!, 150m, 7);
 
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.ErrorMessage == ValidationMessages.PaymentMethodRequired);
+            // Act
+            var result = _sut.Validate(request);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().Contain(e => e.ErrorMessage == ValidationMessages.PaymentMethodRequired);
         }
     }
 }

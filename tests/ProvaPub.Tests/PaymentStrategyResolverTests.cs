@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Moq;
 using ProvaPub.Application.Payments;
 using Xunit;
@@ -19,21 +20,29 @@ namespace ProvaPub.Tests
         [InlineData("CreditCard", "creditcard")]
         public void Resolve_MatchesRegisteredStrategyIgnoringCase(string requested, string registered)
         {
+            // Arrange
             var strategies = new[] { CreateStrategy(registered) };
             var sut = new PaymentStrategyResolver(strategies);
 
+            // Act
             var result = sut.Resolve(requested);
 
-            Assert.Equal(registered, result.PaymentMethod);
+            // Assert
+            result.PaymentMethod.Should().Be(registered);
         }
 
         [Fact]
         public void Resolve_UnknownPaymentMethod_ThrowsArgumentException()
         {
+            // Arrange
             var strategies = new[] { CreateStrategy("pix") };
             var sut = new PaymentStrategyResolver(strategies);
 
-            Assert.Throws<ArgumentException>(() => sut.Resolve("bitcoin"));
+            // Act
+            var act = () => sut.Resolve("bitcoin");
+
+            // Assert
+            act.Should().Throw<ArgumentException>();
         }
     }
 }

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using FluentValidation;
 using Moq;
 using ProvaPub.Application.DTO.Request;
@@ -51,12 +52,16 @@ namespace ProvaPub.Tests
         [InlineData(-1)]
         public async Task CanPurchase_InvalidCustomerId_ThrowsWithoutTouchingRepositories(int customerId)
         {
+            // Arrange
             var customerRepository = new Mock<ICustomerRepository>();
             var orderRepository = new Mock<IOrderRepository>();
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(Wednesday1200Utc).Object, Validator);
 
-            await Assert.ThrowsAsync<ValidationException>(() => sut.CanPurchase(Request(customerId, 50)));
+            // Act
+            var act = () => sut.CanPurchase(Request(customerId, 50));
 
+            // Assert
+            await act.Should().ThrowAsync<ValidationException>();
             customerRepository.Verify(r => r.GetByIdAsync(It.IsAny<int>()), Times.Never);
             orderRepository.Verify(r => r.CountByCustomerSinceAsync(It.IsAny<int>(), It.IsAny<DateTime>()), Times.Never);
         }
@@ -66,12 +71,16 @@ namespace ProvaPub.Tests
         [InlineData(-10)]
         public async Task CanPurchase_InvalidPurchaseValue_ThrowsWithoutTouchingRepositories(decimal purchaseValue)
         {
+            // Arrange
             var customerRepository = new Mock<ICustomerRepository>();
             var orderRepository = new Mock<IOrderRepository>();
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(Wednesday1200Utc).Object, Validator);
 
-            await Assert.ThrowsAsync<ValidationException>(() => sut.CanPurchase(Request(1, purchaseValue)));
+            // Act
+            var act = () => sut.CanPurchase(Request(1, purchaseValue));
 
+            // Assert
+            await act.Should().ThrowAsync<ValidationException>();
             customerRepository.Verify(r => r.GetByIdAsync(It.IsAny<int>()), Times.Never);
             orderRepository.Verify(r => r.CountByCustomerSinceAsync(It.IsAny<int>(), It.IsAny<DateTime>()), Times.Never);
         }
@@ -79,61 +88,77 @@ namespace ProvaPub.Tests
         [Fact]
         public async Task CanPurchase_CustomerDoesNotExist_ThrowsWithoutTouchingOrderRepository()
         {
+            // Arrange
             var customerRepository = MockCustomerRepositoryReturning(null);
             var orderRepository = new Mock<IOrderRepository>();
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(Wednesday1200Utc).Object, Validator);
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.CanPurchase(Request(9999, 50)));
+            // Act
+            var act = () => sut.CanPurchase(Request(9999, 50));
 
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>();
             orderRepository.Verify(r => r.CountByCustomerSinceAsync(It.IsAny<int>(), It.IsAny<DateTime>()), Times.Never);
         }
 
         [Fact]
         public async Task CanPurchase_CustomerAlreadyPurchasedThisMonth_ReturnsFalse()
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(1);
             var orderRepository = MockOrderRepository(ordersThisMonth: 1);
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(Wednesday1200Utc).Object, Validator);
 
+            // Act
             var result = await sut.CanPurchase(Request(1, 50));
 
-            Assert.False(result);
+            // Assert
+            result.Should().BeFalse();
         }
 
         [Fact]
         public async Task CanPurchase_FirstPurchaseAboveLimit_ReturnsFalse()
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(2);
             var orderRepository = MockOrderRepository(ordersThisMonth: 0, hasBoughtBefore: false);
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(Wednesday1200Utc).Object, Validator);
 
+            // Act
             var result = await sut.CanPurchase(Request(2, 100.01m));
 
-            Assert.False(result);
+            // Assert
+            result.Should().BeFalse();
         }
 
         [Fact]
         public async Task CanPurchase_FirstPurchaseAtOrBelowLimitDuringBusinessHours_ReturnsTrue()
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(2);
             var orderRepository = MockOrderRepository(ordersThisMonth: 0, hasBoughtBefore: false);
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(Wednesday1200Utc).Object, Validator);
 
+            // Act
             var result = await sut.CanPurchase(Request(2, 100m));
 
-            Assert.True(result);
+            // Assert
+            result.Should().BeTrue();
         }
 
         [Fact]
         public async Task CanPurchase_ReturningCustomerAboveOldLimitDuringBusinessHours_ReturnsTrue()
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(3);
             var orderRepository = MockOrderRepository(ordersThisMonth: 0, hasBoughtBefore: true);
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(Wednesday1200Utc).Object, Validator);
 
+            // Act
             var result = await sut.CanPurchase(Request(3, 500m));
 
-            Assert.True(result);
+            // Assert
+            result.Should().BeTrue();
         }
 
         [Theory]
@@ -141,13 +166,16 @@ namespace ProvaPub.Tests
         [InlineData(19)]
         public async Task CanPurchase_OutsideBusinessHours_ReturnsFalse(int hour)
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(3);
             var orderRepository = MockOrderRepository();
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(UtcTimeForHour(hour)).Object, Validator);
 
+            // Act
             var result = await sut.CanPurchase(Request(3, 50));
 
-            Assert.False(result);
+            // Assert
+            result.Should().BeFalse();
         }
 
         [Theory]
@@ -155,78 +183,96 @@ namespace ProvaPub.Tests
         [InlineData(18)]
         public async Task CanPurchase_AtBusinessHoursBoundaries_ReturnsTrue(int hour)
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(3);
             var orderRepository = MockOrderRepository();
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(UtcTimeForHour(hour)).Object, Validator);
 
+            // Act
             var result = await sut.CanPurchase(Request(3, 50));
 
-            Assert.True(result);
+            // Assert
+            result.Should().BeTrue();
         }
 
         [Fact]
         public async Task CanPurchase_UtcEveningThatIsWithinBusinessHours_ReturnsTrue()
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(3);
             var orderRepository = MockOrderRepository();
             var utc8Pm = new DateTime(2026, 9, 16, 20, 0, 0, DateTimeKind.Utc);
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(utc8Pm).Object, Validator);
 
+            // Act
             var result = await sut.CanPurchase(Request(3, 50));
 
-            Assert.True(result);
+            // Assert
+            result.Should().BeTrue();
         }
 
         [Fact]
         public async Task CanPurchase_UtcMorningThatIsBeforeBusinessHours_ReturnsFalse()
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(3);
             var orderRepository = MockOrderRepository();
             var utc10Am = new DateTime(2026, 9, 16, 10, 0, 0, DateTimeKind.Utc);
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(utc10Am).Object, Validator);
 
+            // Act
             var result = await sut.CanPurchase(Request(3, 50));
 
-            Assert.False(result);
+            // Assert
+            result.Should().BeFalse();
         }
 
         [Fact]
         public async Task CanPurchase_Saturday_ReturnsFalse()
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(3);
             var orderRepository = MockOrderRepository();
             var saturdayNoon = Wednesday1200Utc.AddDays(3);
-            Assert.Equal(DayOfWeek.Saturday, saturdayNoon.DayOfWeek);
+            saturdayNoon.DayOfWeek.Should().Be(DayOfWeek.Saturday);
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(saturdayNoon).Object, Validator);
 
+            // Act
             var result = await sut.CanPurchase(Request(3, 50));
 
-            Assert.False(result);
+            // Assert
+            result.Should().BeFalse();
         }
 
         [Fact]
         public async Task CanPurchase_Sunday_ReturnsFalse()
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(3);
             var orderRepository = MockOrderRepository();
             var sundayNoon = Wednesday1200Utc.AddDays(4);
-            Assert.Equal(DayOfWeek.Sunday, sundayNoon.DayOfWeek);
+            sundayNoon.DayOfWeek.Should().Be(DayOfWeek.Sunday);
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(sundayNoon).Object, Validator);
 
+            // Act
             var result = await sut.CanPurchase(Request(3, 50));
 
-            Assert.False(result);
+            // Assert
+            result.Should().BeFalse();
         }
 
         [Fact]
         public async Task CanPurchase_UsesOneMonthWindowEndingAtClockUtcNow()
         {
+            // Arrange
             var customerRepository = MockExistingCustomer(1);
             var orderRepository = MockOrderRepository();
             var sut = new CustomerService(customerRepository.Object, orderRepository.Object, MockClock(Wednesday1200Utc).Object, Validator);
 
+            // Act
             await sut.CanPurchase(Request(1, 50));
 
+            // Assert
             orderRepository.Verify(r => r.CountByCustomerSinceAsync(1, Wednesday1200Utc.AddMonths(-1)), Times.Once);
         }
     }

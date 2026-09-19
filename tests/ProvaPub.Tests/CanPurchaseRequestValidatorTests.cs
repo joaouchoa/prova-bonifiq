@@ -1,3 +1,4 @@
+using FluentAssertions;
 using ProvaPub.Application.Common;
 using ProvaPub.Application.DTO.Request;
 using ProvaPub.Application.Validators;
@@ -12,9 +13,14 @@ namespace ProvaPub.Tests
         [Fact]
         public void Validate_ValidRequest_HasNoErrors()
         {
-            var result = _sut.Validate(new CanPurchaseRequest(7, 50m));
+            // Arrange
+            var request = new CanPurchaseRequest(7, 50m);
 
-            Assert.True(result.IsValid);
+            // Act
+            var result = _sut.Validate(request);
+
+            // Assert
+            result.IsValid.Should().BeTrue();
         }
 
         [Theory]
@@ -22,10 +28,15 @@ namespace ProvaPub.Tests
         [InlineData(-1)]
         public void Validate_CustomerIdNotGreaterThanZero_FailsWithExpectedMessage(int customerId)
         {
-            var result = _sut.Validate(new CanPurchaseRequest(customerId, 50m));
+            // Arrange
+            var request = new CanPurchaseRequest(customerId, 50m);
 
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.ErrorMessage == ValidationMessages.CustomerIdMustBeGreaterThanZero);
+            // Act
+            var result = _sut.Validate(request);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().Contain(e => e.ErrorMessage == ValidationMessages.CustomerIdMustBeGreaterThanZero);
         }
 
         [Theory]
@@ -33,10 +44,15 @@ namespace ProvaPub.Tests
         [InlineData(-1)]
         public void Validate_PurchaseValueNotGreaterThanZero_FailsWithExpectedMessage(decimal purchaseValue)
         {
-            var result = _sut.Validate(new CanPurchaseRequest(7, purchaseValue));
+            // Arrange
+            var request = new CanPurchaseRequest(7, purchaseValue);
 
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.ErrorMessage == ValidationMessages.ValueMustBeGreaterThanZero);
+            // Act
+            var result = _sut.Validate(request);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().Contain(e => e.ErrorMessage == ValidationMessages.ValueMustBeGreaterThanZero);
         }
     }
 }

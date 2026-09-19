@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Moq;
 using ProvaPub.Application.Common;
 using ProvaPub.Application.DTO.Request;
@@ -30,6 +31,7 @@ namespace ProvaPub.Tests
         [Fact]
         public async Task PayOrder_AssignsCustomerIdAndValueToTheOrder()
         {
+            // Arrange
             var repository = new Mock<IOrderRepository>();
             repository.Setup(r => r.AddAsync(It.IsAny<Order>())).ReturnsAsync((Order o) => o);
             var customerRepository = MockExistingCustomer(7);
@@ -39,15 +41,18 @@ namespace ProvaPub.Tests
             resolver.Setup(r => r.Resolve("pix")).Returns(strategy.Object);
             var sut = new OrderService(repository.Object, customerRepository.Object, resolver.Object, Validator);
 
+            // Act
             var result = await sut.PayOrder(ValidRequest());
 
-            Assert.Equal(7, result.CustomerId);
-            Assert.Equal(150m, result.Value);
+            // Assert
+            result.CustomerId.Should().Be(7);
+            result.Value.Should().Be(150m);
         }
 
         [Fact]
         public async Task PayOrder_PersistsUtcNowButReturnsOrderDateConvertedToBrazilTime()
         {
+            // Arrange
             Order? persisted = null;
             var repository = new Mock<IOrderRepository>();
             repository.Setup(r => r.AddAsync(It.IsAny<Order>()))
@@ -58,19 +63,22 @@ namespace ProvaPub.Tests
             var resolver = new Mock<IPaymentStrategyResolver>();
             resolver.Setup(r => r.Resolve("pix")).Returns(strategy.Object);
             var sut = new OrderService(repository.Object, customerRepository.Object, resolver.Object, Validator);
-
             var before = DateTime.UtcNow;
+
+            // Act
             var result = await sut.PayOrder(ValidRequest());
             var after = DateTime.UtcNow;
 
-            Assert.NotNull(persisted);
-            Assert.InRange(persisted!.OrderDate, before, after); // persistido em UTC
-            Assert.Equal(persisted.OrderDate.AddHours(-3), result.OrderDate); // retornado em horário do Brasil
+            // Assert
+            persisted.Should().NotBeNull();
+            persisted!.OrderDate.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+            result.OrderDate.Should().Be(persisted.OrderDate.AddHours(-3));
         }
 
         [Fact]
         public async Task PayOrder_PersistsTheOrderThroughTheRepository()
         {
+            // Arrange
             var repository = new Mock<IOrderRepository>();
             repository.Setup(r => r.AddAsync(It.IsAny<Order>())).ReturnsAsync((Order o) => o);
             var customerRepository = MockExistingCustomer(7);
@@ -79,8 +87,10 @@ namespace ProvaPub.Tests
             resolver.Setup(r => r.Resolve("pix")).Returns(strategy.Object);
             var sut = new OrderService(repository.Object, customerRepository.Object, resolver.Object, Validator);
 
+            // Act
             await sut.PayOrder(ValidRequest());
 
+            // Assert
             repository.Verify(r => r.AddAsync(It.Is<Order>(o => o.CustomerId == 7 && o.Value == 150m)), Times.Once);
         }
 
@@ -90,6 +100,7 @@ namespace ProvaPub.Tests
         [InlineData("paypal")]
         public async Task PayOrder_ResolvesAndProcessesTheStrategyMatchingThePaymentMethod(string paymentMethod)
         {
+            // Arrange
             var repository = new Mock<IOrderRepository>();
             repository.Setup(r => r.AddAsync(It.IsAny<Order>())).ReturnsAsync((Order o) => o);
             var customerRepository = MockExistingCustomer(7);
@@ -98,8 +109,10 @@ namespace ProvaPub.Tests
             resolver.Setup(r => r.Resolve(paymentMethod)).Returns(strategy.Object);
             var sut = new OrderService(repository.Object, customerRepository.Object, resolver.Object, Validator);
 
+            // Act
             await sut.PayOrder(ValidRequest(paymentMethod: paymentMethod));
 
+            // Assert
             resolver.Verify(r => r.Resolve(paymentMethod), Times.Once);
             strategy.Verify(s => s.ProcessAsync(It.IsAny<Order>()), Times.Once);
         }
@@ -107,28 +120,37 @@ namespace ProvaPub.Tests
         [Fact]
         public async Task PayOrder_UnsupportedPaymentMethod_PropagatesResolverExceptionWithoutPersisting()
         {
+            // Arrange
             var repository = new Mock<IOrderRepository>();
             var customerRepository = MockExistingCustomer(7);
             var resolver = new Mock<IPaymentStrategyResolver>();
             resolver.Setup(r => r.Resolve("bitcoin")).Throws(new ArgumentException("Forma de pagamento 'bitcoin' não é suportada."));
             var sut = new OrderService(repository.Object, customerRepository.Object, resolver.Object, Validator);
 
-            await Assert.ThrowsAsync<ArgumentException>(() => sut.PayOrder(ValidRequest(paymentMethod: "bitcoin")));
+            // Act
+            var act = () => sut.PayOrder(ValidRequest(paymentMethod: "bitcoin"));
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>();
             repository.Verify(r => r.AddAsync(It.IsAny<Order>()), Times.Never);
         }
 
         [Fact]
         public async Task PayOrder_UnknownCustomer_ThrowsWithoutResolvingStrategyOrPersisting()
         {
+            // Arrange
             var repository = new Mock<IOrderRepository>();
             var customerRepository = MockCustomerRepositoryReturning(null);
             var resolver = new Mock<IPaymentStrategyResolver>();
             var sut = new OrderService(repository.Object, customerRepository.Object, resolver.Object, Validator);
 
-            var exception = await Assert.ThrowsAsync<ArgumentException>(() => sut.PayOrder(ValidRequest(customerId: 999)));
+            // Act
+            var act = () => sut.PayOrder(ValidRequest(customerId: 999));
 
-            Assert.Equal("request", exception.ParamName);
-            Assert.StartsWith(string.Format(ValidationMessages.CustomerNotFound, 999), exception.Message);
+            // Assert
+            var assertion = await act.Should().ThrowAsync<ArgumentException>();
+            assertion.Which.ParamName.Should().Be("request");
+            assertion.Which.Message.Should().StartWith(string.Format(ValidationMessages.CustomerNotFound, 999));
             resolver.Verify(r => r.Resolve(It.IsAny<string>()), Times.Never);
             repository.Verify(r => r.AddAsync(It.IsAny<Order>()), Times.Never);
         }
@@ -136,6 +158,7 @@ namespace ProvaPub.Tests
         [Fact]
         public async Task PayOrder_ReturnsOrderWithCustomerAssigned()
         {
+            // Arrange
             var repository = new Mock<IOrderRepository>();
             repository.Setup(r => r.AddAsync(It.IsAny<Order>())).ReturnsAsync((Order o) => o);
             var customer = new Customer { Id = 7, Name = "Test Customer" };
@@ -145,28 +168,33 @@ namespace ProvaPub.Tests
             resolver.Setup(r => r.Resolve("pix")).Returns(strategy.Object);
             var sut = new OrderService(repository.Object, customerRepository.Object, resolver.Object, Validator);
 
+            // Act
             var result = await sut.PayOrder(ValidRequest());
 
-            Assert.NotNull(result.Customer);
-            Assert.Equal(7, result.Customer!.Id);
-            Assert.Equal("Test Customer", result.Customer.Name);
+            // Assert
+            result.Customer.Should().NotBeNull();
+            result.Customer!.Id.Should().Be(7);
+            result.Customer.Name.Should().Be("Test Customer");
         }
 
         [Theory]
-        [InlineData("pix", 150, 0)]     // customerId inválido
-        [InlineData("pix", 0, 7)]       // paymentValue inválido
-        [InlineData("pi", 150, 7)]      // paymentMethod curto demais
+        [InlineData("pix", 150, 0)]
+        [InlineData("pix", 0, 7)]
+        [InlineData("pi", 150, 7)]
         public async Task PayOrder_InvalidRequest_ThrowsValidationExceptionWithoutTouchingCustomerRepositoryOrResolver(
             string paymentMethod, decimal paymentValue, int customerId)
         {
+            // Arrange
             var repository = new Mock<IOrderRepository>();
             var customerRepository = new Mock<ICustomerRepository>();
             var resolver = new Mock<IPaymentStrategyResolver>();
             var sut = new OrderService(repository.Object, customerRepository.Object, resolver.Object, Validator);
 
-            await Assert.ThrowsAsync<FluentValidation.ValidationException>(
-                () => sut.PayOrder(new OrderRequest(paymentMethod, paymentValue, customerId)));
+            // Act
+            var act = () => sut.PayOrder(new OrderRequest(paymentMethod, paymentValue, customerId));
 
+            // Assert
+            await act.Should().ThrowAsync<FluentValidation.ValidationException>();
             customerRepository.Verify(r => r.GetByIdAsync(It.IsAny<int>()), Times.Never);
             resolver.Verify(r => r.Resolve(It.IsAny<string>()), Times.Never);
             repository.Verify(r => r.AddAsync(It.IsAny<Order>()), Times.Never);
