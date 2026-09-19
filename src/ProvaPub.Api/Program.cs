@@ -1,3 +1,4 @@
+using ProvaPub.Api.Middleware;
 using ProvaPub.Application;
 using ProvaPub.Infrastructure;
 
@@ -14,6 +15,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplicationServices();
 
 var app = builder.Build();
+
+app.UseGlobalExceptionHandling();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
