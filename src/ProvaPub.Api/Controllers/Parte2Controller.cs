@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ProvaPub.Application.Common;
 using ProvaPub.Application.Services;
+using ProvaPub.Domain;
 
 namespace ProvaPub.Api.Controllers
 {
@@ -19,13 +20,13 @@ namespace ProvaPub.Api.Controllers
 		}
 
 		[HttpGet("products")]
-		public async Task<ProductList> ListProducts(int page)
+		public async Task<PagedResult<Product>> ListProducts(int page)
 		{
 			return await _productService.ListProducts(page);
 		}
 
 		[HttpGet("customers")]
-		public async Task<CustomerList> ListCustomers(int page)
+		public async Task<PagedResult<Customer>> ListCustomers(int page)
 		{
 			return await _customerService.ListCustomers(page);
 		}

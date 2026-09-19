@@ -2,8 +2,7 @@ using ProvaPub.Domain;
 
 namespace ProvaPub.Application.Interfaces
 {
-	public interface IProductRepository
+	public interface IProductRepository : IPagedRepository<Product>
 	{
-		Task<List<Product>> GetAllAsync();
 	}
 }

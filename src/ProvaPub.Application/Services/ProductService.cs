@@ -1,22 +1,15 @@
 using ProvaPub.Application.Common;
 using ProvaPub.Application.Interfaces;
+using ProvaPub.Domain;
 
 namespace ProvaPub.Application.Services
 {
-	public class ProductService
+	public class ProductService : PagedListService<Product>
 	{
-		private readonly IProductRepository _productRepository;
-
-		public ProductService(IProductRepository productRepository)
+		public ProductService(IProductRepository productRepository) : base(productRepository)
 		{
-			_productRepository = productRepository;
 		}
 
-		public async Task<ProductList> ListProducts(int page)
-		{
-			var products = await _productRepository.GetAllAsync();
-			return new ProductList() { HasNext = false, TotalCount = 10, Products = products };
-		}
-
+		public Task<PagedResult<Product>> ListProducts(int page) => GetPageAsync(page);
 	}
 }

@@ -5,17 +5,14 @@ using ProvaPub.Infrastructure.Persistence;
 
 namespace ProvaPub.Infrastructure.Repositories
 {
-	public class CustomerRepository : ICustomerRepository
+	public class CustomerRepository : EfPagedRepository<Customer>, ICustomerRepository
 	{
-		private readonly TestDbContext _ctx;
-
-		public CustomerRepository(TestDbContext ctx)
+		public CustomerRepository(TestDbContext ctx) : base(ctx)
 		{
-			_ctx = ctx;
 		}
 
-		public async Task<Customer?> GetByIdAsync(int id) => await _ctx.Customers.FindAsync(id);
+		protected override IQueryable<Customer> OrderedQuery => Ctx.Customers.OrderBy(c => c.Id);
 
-		public async Task<List<Customer>> GetAllAsync() => await _ctx.Customers.ToListAsync();
+		public async Task<Customer?> GetByIdAsync(int id) => await Ctx.Customers.FindAsync(id);
 	}
 }

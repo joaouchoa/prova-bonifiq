@@ -1,24 +1,22 @@
 using ProvaPub.Application.Common;
 using ProvaPub.Application.Interfaces;
+using ProvaPub.Domain;
 
 namespace ProvaPub.Application.Services
 {
-    public class CustomerService
+    public class CustomerService : PagedListService<Customer>
     {
         private readonly ICustomerRepository _customerRepository;
         private readonly IOrderRepository _orderRepository;
 
         public CustomerService(ICustomerRepository customerRepository, IOrderRepository orderRepository)
+            : base(customerRepository)
         {
             _customerRepository = customerRepository;
             _orderRepository = orderRepository;
         }
 
-        public async Task<CustomerList> ListCustomers(int page)
-        {
-            var customers = await _customerRepository.GetAllAsync();
-            return new CustomerList() { HasNext = false, TotalCount = 10, Customers = customers };
-        }
+        public Task<PagedResult<Customer>> ListCustomers(int page) => GetPageAsync(page);
 
         public async Task<bool> CanPurchase(int customerId, decimal purchaseValue)
         {
