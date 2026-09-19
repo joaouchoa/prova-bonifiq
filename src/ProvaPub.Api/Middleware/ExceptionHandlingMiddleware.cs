@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using FluentValidation;
 
 namespace ProvaPub.Api.Middleware
 {
@@ -39,14 +40,19 @@ namespace ProvaPub.Api.Middleware
 			{
 				status = statusCode,
 				title,
-				detail = isServerError ? "Ocorreu um erro interno inesperado." : exception.Message
+				detail = isServerError ? "Ocorreu um erro interno inesperado." : GetDetail(exception)
 			};
 
 			return context.Response.WriteAsync(JsonSerializer.Serialize(problem));
 		}
 
+		private static string GetDetail(Exception exception) => exception is ValidationException validationException
+			? string.Join(" ", validationException.Errors.Select(e => e.ErrorMessage))
+			: exception.Message;
+
 		private static (int StatusCode, string Title) MapException(Exception exception) => exception switch
 		{
+			ValidationException => ((int)HttpStatusCode.BadRequest, "Requisição inválida"),
 			ArgumentException => ((int)HttpStatusCode.BadRequest, "Requisição inválida"),
 			InvalidOperationException => ((int)HttpStatusCode.BadRequest, "Regra de negócio violada"),
 			_ => ((int)HttpStatusCode.InternalServerError, "Erro interno")

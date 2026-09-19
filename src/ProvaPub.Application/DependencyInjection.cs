@@ -1,6 +1,8 @@
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using ProvaPub.Application.Payments;
 using ProvaPub.Application.Services;
+using ProvaPub.Application.Validators;
 
 namespace ProvaPub.Application
 {
@@ -17,6 +19,8 @@ namespace ProvaPub.Application
 			services.AddScoped<IPaymentStrategy, CreditCardPaymentStrategy>();
 			services.AddScoped<IPaymentStrategy, PaypalPaymentStrategy>();
 			services.AddScoped<IPaymentStrategyResolver, PaymentStrategyResolver>();
+
+			services.AddValidatorsFromAssemblyContaining<OrderRequestValidator>();
 
 			return services;
 		}

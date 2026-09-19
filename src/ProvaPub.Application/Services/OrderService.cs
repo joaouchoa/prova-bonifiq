@@ -1,4 +1,6 @@
+using FluentValidation;
 using ProvaPub.Application.Common;
+using ProvaPub.Application.DTO.Request;
 using ProvaPub.Application.DTO.Response;
 using ProvaPub.Application.Interfaces;
 using ProvaPub.Application.Models;
@@ -12,26 +14,34 @@ namespace ProvaPub.Application.Services
         private readonly IOrderRepository _orderRepository;
         private readonly ICustomerRepository _customerRepository;
         private readonly IPaymentStrategyResolver _paymentStrategyResolver;
+        private readonly IValidator<OrderRequest> _orderRequestValidator;
 
-        public OrderService(IOrderRepository orderRepository, ICustomerRepository customerRepository, IPaymentStrategyResolver paymentStrategyResolver)
+        public OrderService(
+            IOrderRepository orderRepository,
+            ICustomerRepository customerRepository,
+            IPaymentStrategyResolver paymentStrategyResolver,
+            IValidator<OrderRequest> orderRequestValidator)
         {
             _orderRepository = orderRepository;
             _customerRepository = customerRepository;
             _paymentStrategyResolver = paymentStrategyResolver;
+            _orderRequestValidator = orderRequestValidator;
         }
 
-        public async Task<OrderResponse> PayOrder(string paymentMethod, decimal paymentValue, int customerId)
+        public async Task<OrderResponse> PayOrder(OrderRequest request)
 		{
-			var customer = await _customerRepository.GetByIdAsync(customerId);
-			if (customer == null) throw new ArgumentException($"Customer Id {customerId} does not exist", nameof(customerId));
+			_orderRequestValidator.ValidateAndThrow(request);
 
-			var strategy = _paymentStrategyResolver.Resolve(paymentMethod);
+			var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
+			if (customer == null) throw new ArgumentException($"Customer Id {request.CustomerId} does not exist", nameof(request.CustomerId));
+
+			var strategy = _paymentStrategyResolver.Resolve(request.PaymentMethod);
 
 			var order = new Order
 			{
-				CustomerId = customerId,
+				CustomerId = request.CustomerId,
 				Customer = customer,
-				Value = paymentValue,
+				Value = request.PaymentValue,
 				OrderDate = DateTime.UtcNow
 			};
 

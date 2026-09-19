@@ -18,6 +18,6 @@ namespace ProvaPub.Api.Controllers
 
 		[HttpPost("orders")]
 		public Task<OrderResponse> PlaceOrder([FromBody] OrderRequest request) =>
-			_orderService.PayOrder(request.PaymentMethod, request.PaymentValue, request.CustomerId);
+			_orderService.PayOrder(request);
 	}
 }
