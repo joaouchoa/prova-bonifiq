@@ -1,4 +1,4 @@
-using ProvaPub.Application.Common;
+using ProvaPub.Application.DTO.Response;
 using ProvaPub.Application.Interfaces;
 using ProvaPub.Domain;
 

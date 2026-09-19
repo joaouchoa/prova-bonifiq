@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using ProvaPub.Application.Common;
+using ProvaPub.Application.DTO.Response;
 using ProvaPub.Application.Services;
 using ProvaPub.Domain;
 

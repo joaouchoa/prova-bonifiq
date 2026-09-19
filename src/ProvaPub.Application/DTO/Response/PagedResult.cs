@@ -1,4 +1,4 @@
-namespace ProvaPub.Application.Common
+namespace ProvaPub.Application.DTO.Response
 {
 	public class PagedResult<T>
 	{

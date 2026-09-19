@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using ProvaPub.Api.Common;
+using ProvaPub.Application.DTO.Request;
+using ProvaPub.Application.DTO.Response;
 using ProvaPub.Application.Services;
-using ProvaPub.Domain;
 
 namespace ProvaPub.Api.Controllers
 {
@@ -16,12 +16,8 @@ namespace ProvaPub.Api.Controllers
 			_orderService = orderService;
 		}
 
-		[HttpGet("orders")]
-		public async Task<Order> PlaceOrder(string paymentMethod, decimal paymentValue, int customerId)
-		{
-			var order = await _orderService.PayOrder(paymentMethod, paymentValue, customerId);
-			order.OrderDate = order.OrderDate.ToBrazilTime();
-			return order;
-		}
+		[HttpPost("orders")]
+		public Task<OrderResponse> PlaceOrder([FromBody] OrderRequest request) =>
+			_orderService.PayOrder(request.PaymentMethod, request.PaymentValue, request.CustomerId);
 	}
 }
