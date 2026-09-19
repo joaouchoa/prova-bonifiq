@@ -14,7 +14,12 @@ namespace ProvaPub.Infrastructure.Repositories
 			_ctx = ctx;
 		}
 
-		public async Task<Order> AddAsync(Order order) => (await _ctx.Orders.AddAsync(order)).Entity;
+		public async Task<Order> AddAsync(Order order)
+		{
+			var entity = (await _ctx.Orders.AddAsync(order)).Entity;
+			await _ctx.SaveChangesAsync();
+			return entity;
+		}
 
 		public async Task<int> CountByCustomerSinceAsync(int customerId, DateTime since) =>
 			await _ctx.Orders.CountAsync(o => o.CustomerId == customerId && o.OrderDate >= since);

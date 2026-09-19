@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using ProvaPub.Application.Payments;
 using ProvaPub.Application.Services;
 
 namespace ProvaPub.Application
@@ -11,6 +12,11 @@ namespace ProvaPub.Application
 			services.AddScoped<CustomerService>();
 			services.AddScoped<ProductService>();
 			services.AddScoped<OrderService>();
+
+			services.AddScoped<IPaymentStrategy, PixPaymentStrategy>();
+			services.AddScoped<IPaymentStrategy, CreditCardPaymentStrategy>();
+			services.AddScoped<IPaymentStrategy, PaypalPaymentStrategy>();
+			services.AddScoped<IPaymentStrategyResolver, PaymentStrategyResolver>();
 
 			return services;
 		}

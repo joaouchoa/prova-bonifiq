@@ -1,4 +1,5 @@
 using ProvaPub.Application.Interfaces;
+using ProvaPub.Application.Payments;
 using ProvaPub.Domain;
 
 namespace ProvaPub.Application.Services
@@ -6,33 +7,28 @@ namespace ProvaPub.Application.Services
 	public class OrderService
 	{
         private readonly IOrderRepository _orderRepository;
+        private readonly IPaymentStrategyResolver _paymentStrategyResolver;
 
-        public OrderService(IOrderRepository orderRepository)
+        public OrderService(IOrderRepository orderRepository, IPaymentStrategyResolver paymentStrategyResolver)
         {
             _orderRepository = orderRepository;
+            _paymentStrategyResolver = paymentStrategyResolver;
         }
 
         public async Task<Order> PayOrder(string paymentMethod, decimal paymentValue, int customerId)
 		{
-			if (paymentMethod == "pix")
-			{
-				//Faz pagamento...
-			}
-			else if (paymentMethod == "creditcard")
-			{
-				//Faz pagamento...
-			}
-			else if (paymentMethod == "paypal")
-			{
-				//Faz pagamento...
-			}
+			var strategy = _paymentStrategyResolver.Resolve(paymentMethod);
 
-			return await InsertOrder(new Order() //Retorna o pedido para o controller
-            {
-                Value = paymentValue
-            });
+			var order = new Order
+			{
+				CustomerId = customerId,
+				Value = paymentValue,
+				OrderDate = DateTime.UtcNow
+			};
 
+			await strategy.ProcessAsync(order);
 
+			return await InsertOrder(order); //Retorna o pedido para o controller
 		}
 
 		public async Task<Order> InsertOrder(Order order)
