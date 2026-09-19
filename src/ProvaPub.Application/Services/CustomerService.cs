@@ -1,3 +1,6 @@
+using FluentValidation;
+using ProvaPub.Application.Common;
+using ProvaPub.Application.DTO.Request;
 using ProvaPub.Application.DTO.Response;
 using ProvaPub.Application.Interfaces;
 using ProvaPub.Domain;
@@ -8,44 +11,45 @@ namespace ProvaPub.Application.Services
     {
         private readonly ICustomerRepository _customerRepository;
         private readonly IOrderRepository _orderRepository;
+        private readonly IClock _clock;
+        private readonly IValidator<CanPurchaseRequest> _canPurchaseRequestValidator;
 
-        public CustomerService(ICustomerRepository customerRepository, IOrderRepository orderRepository)
+        public CustomerService(
+            ICustomerRepository customerRepository,
+            IOrderRepository orderRepository,
+            IClock clock,
+            IValidator<CanPurchaseRequest> canPurchaseRequestValidator)
             : base(customerRepository)
         {
             _customerRepository = customerRepository;
             _orderRepository = orderRepository;
+            _clock = clock;
+            _canPurchaseRequestValidator = canPurchaseRequestValidator;
         }
 
         public Task<PagedResult<Customer>> ListCustomers(int page) => GetPageAsync(page);
 
-        public async Task<bool> CanPurchase(int customerId, decimal purchaseValue)
+        public async Task<bool> CanPurchase(CanPurchaseRequest request)
         {
-            if (customerId <= 0) throw new ArgumentOutOfRangeException(nameof(customerId));
+            _canPurchaseRequestValidator.ValidateAndThrow(request);
 
-            if (purchaseValue <= 0) throw new ArgumentOutOfRangeException(nameof(purchaseValue));
+            var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
+            if (customer == null) throw new InvalidOperationException($"Customer Id {request.CustomerId} does not exists");
 
-            //Business Rule: Non registered Customers cannot purchase
-            var customer = await _customerRepository.GetByIdAsync(customerId);
-            if (customer == null) throw new InvalidOperationException($"Customer Id {customerId} does not exists");
-
-            //Business Rule: A customer can purchase only a single time per month
-            var baseDate = DateTime.UtcNow.AddMonths(-1);
-            var ordersInThisMonth = await _orderRepository.CountByCustomerSinceAsync(customerId, baseDate);
+            var baseDate = _clock.UtcNow.AddMonths(-1);
+            var ordersInThisMonth = await _orderRepository.CountByCustomerSinceAsync(request.CustomerId, baseDate);
             if (ordersInThisMonth > 0)
                 return false;
 
-            //Business Rule: A customer that never bought before can make a first purchase of maximum 100,00
-            var haveBoughtBefore = await _orderRepository.CustomerHasOrdersAsync(customerId);
-            if (!haveBoughtBefore && purchaseValue > 100)
+            var haveBoughtBefore = await _orderRepository.CustomerHasOrdersAsync(request.CustomerId);
+            if (!haveBoughtBefore && request.PurchaseValue > 100)
                 return false;
 
-            //Business Rule: A customer can purchases only during business hours and working days
-            if (DateTime.UtcNow.Hour < 8 || DateTime.UtcNow.Hour > 18 || DateTime.UtcNow.DayOfWeek == DayOfWeek.Saturday || DateTime.UtcNow.DayOfWeek == DayOfWeek.Sunday)
+            var now = _clock.UtcNow.ToBrazilTime();
+            if (now.Hour < 8 || now.Hour > 18 || now.DayOfWeek == DayOfWeek.Saturday || now.DayOfWeek == DayOfWeek.Sunday)
                 return false;
-
 
             return true;
         }
-
     }
 }

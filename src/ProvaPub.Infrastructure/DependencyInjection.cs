@@ -19,6 +19,8 @@ namespace ProvaPub.Infrastructure
 			services.AddScoped<IOrderRepository, OrderRepository>();
 			services.AddScoped<IRandomNumberRepository, RandomNumberRepository>();
 
+			services.AddSingleton<IClock, SystemClock>();
+
 			return services;
 		}
 	}

@@ -4,22 +4,17 @@ using ProvaPub.Application.DTO.Request;
 
 namespace ProvaPub.Application.Validators
 {
-	public class OrderRequestValidator : AbstractValidator<OrderRequest>
+	public class CanPurchaseRequestValidator : AbstractValidator<CanPurchaseRequest>
 	{
-		public OrderRequestValidator()
+		public CanPurchaseRequestValidator()
 		{
 			RuleFor(x => x.CustomerId)
 				.GreaterThan(0)
 				.WithMessage(ValidationMessages.CustomerIdMustBeGreaterThanZero);
 
-			RuleFor(x => x.PaymentValue)
+			RuleFor(x => x.PurchaseValue)
 				.GreaterThan(0)
 				.WithMessage(ValidationMessages.ValueMustBeGreaterThanZero);
-
-			RuleFor(x => x.PaymentMethod)
-				.Cascade(CascadeMode.Stop)
-				.NotEmpty().WithMessage(ValidationMessages.PaymentMethodRequired)
-				.MinimumLength(3).WithMessage(ValidationMessages.PaymentMethodTooShort);
 		}
 	}
 }

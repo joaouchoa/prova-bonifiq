@@ -36,7 +36,7 @@ namespace ProvaPub.Tests
             var result = _sut.Validate(new OrderRequest("pix", paymentValue, 7));
 
             Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.ErrorMessage == ValidationMessages.PaymentValueMustBeGreaterThanZero);
+            Assert.Contains(result.Errors, e => e.ErrorMessage == ValidationMessages.ValueMustBeGreaterThanZero);
         }
 
         [Theory]

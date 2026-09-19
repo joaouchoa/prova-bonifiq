@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ProvaPub.Application.DTO.Request;
 using ProvaPub.Application.Services;
 
 namespace ProvaPub.Api.Controllers
@@ -15,9 +16,7 @@ namespace ProvaPub.Api.Controllers
         }
 
         [HttpGet("CanPurchase")]
-		public async Task<bool> CanPurchase(int customerId, decimal purchaseValue)
-		{
-			return await _customerService.CanPurchase(customerId, purchaseValue);
-		}
+		public Task<bool> CanPurchase([FromQuery] CanPurchaseRequest request) =>
+			_customerService.CanPurchase(request);
 	}
 }

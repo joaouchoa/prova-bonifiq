@@ -1,4 +1,5 @@
 using Moq;
+using ProvaPub.Application.Common;
 using ProvaPub.Application.DTO.Request;
 using ProvaPub.Application.Interfaces;
 using ProvaPub.Application.Payments;
@@ -124,8 +125,10 @@ namespace ProvaPub.Tests
             var resolver = new Mock<IPaymentStrategyResolver>();
             var sut = new OrderService(repository.Object, customerRepository.Object, resolver.Object, Validator);
 
-            await Assert.ThrowsAsync<ArgumentException>(() => sut.PayOrder(ValidRequest(customerId: 999)));
+            var exception = await Assert.ThrowsAsync<ArgumentException>(() => sut.PayOrder(ValidRequest(customerId: 999)));
 
+            Assert.Equal("request", exception.ParamName);
+            Assert.StartsWith(string.Format(ValidationMessages.CustomerNotFound, 999), exception.Message);
             resolver.Verify(r => r.Resolve(It.IsAny<string>()), Times.Never);
             repository.Verify(r => r.AddAsync(It.IsAny<Order>()), Times.Never);
         }

@@ -33,7 +33,7 @@ namespace ProvaPub.Application.Services
 			_orderRequestValidator.ValidateAndThrow(request);
 
 			var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
-			if (customer == null) throw new ArgumentException($"Customer Id {request.CustomerId} does not exist", nameof(request.CustomerId));
+			if (customer == null) throw new ArgumentException(string.Format(ValidationMessages.CustomerNotFound, request.CustomerId), nameof(request));
 
 			var strategy = _paymentStrategyResolver.Resolve(request.PaymentMethod);
 

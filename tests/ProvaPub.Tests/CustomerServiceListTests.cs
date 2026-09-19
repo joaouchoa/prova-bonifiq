@@ -1,4 +1,6 @@
+using FluentValidation;
 using Moq;
+using ProvaPub.Application.DTO.Request;
 using ProvaPub.Application.Interfaces;
 using ProvaPub.Application.Services;
 using ProvaPub.Domain;
@@ -14,7 +16,7 @@ namespace ProvaPub.Tests
             var customerRepository = new Mock<ICustomerRepository>();
             customerRepository.Setup(r => r.GetPagedAsync(It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync((new List<Customer>(), 0));
-            var sut = new CustomerService(customerRepository.Object, Mock.Of<IOrderRepository>());
+            var sut = new CustomerService(customerRepository.Object, Mock.Of<IOrderRepository>(), Mock.Of<IClock>(), Mock.Of<IValidator<CanPurchaseRequest>>());
 
             await sut.ListCustomers(2);
 
@@ -27,7 +29,7 @@ namespace ProvaPub.Tests
             var items = new List<Customer> { new() { Id = 11, Name = "A" }, new() { Id = 12, Name = "B" } };
             var customerRepository = new Mock<ICustomerRepository>();
             customerRepository.Setup(r => r.GetPagedAsync(2, 10)).ReturnsAsync((items, 25));
-            var sut = new CustomerService(customerRepository.Object, Mock.Of<IOrderRepository>());
+            var sut = new CustomerService(customerRepository.Object, Mock.Of<IOrderRepository>(), Mock.Of<IClock>(), Mock.Of<IValidator<CanPurchaseRequest>>());
 
             var result = await sut.ListCustomers(2);
 
@@ -45,7 +47,7 @@ namespace ProvaPub.Tests
         {
             var customerRepository = new Mock<ICustomerRepository>();
             customerRepository.Setup(r => r.GetPagedAsync(page, 10)).ReturnsAsync((new List<Customer>(), totalCount));
-            var sut = new CustomerService(customerRepository.Object, Mock.Of<IOrderRepository>());
+            var sut = new CustomerService(customerRepository.Object, Mock.Of<IOrderRepository>(), Mock.Of<IClock>(), Mock.Of<IValidator<CanPurchaseRequest>>());
 
             var result = await sut.ListCustomers(page);
 
